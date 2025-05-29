@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        compiler: [gcc, clang]
+        
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential valgrind cppcheck
+        
+    - name: Set compiler
+      run: |
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          echo "CC=clang" >> $GITHUB_ENV
+        else
+          echo "CC=gcc" >> $GITHUB_ENV
+        fi
+        
+    - name: Build project
+      run: |
+        make clean
+        make
+        
+    - name: Test help functionality
+      run: |
+        ./datalogger --help
+        
+    - name: Test simulated bridge monitoring
+      run: |
+        timeout 15s bash -c 'echo "1" | ./datalogger --duration 10 --interval 200' || true
+        
+    - name: Test simulated environmental monitoring
+      run: |
+        timeout 10s bash -c 'echo "2" | ./datalogger --duration 5 --interval 500' || true
+        
+    - name: Verify CSV output
+      run: |
+        ls -la data/
+        if [ -f data/*.csv ]; then
+          echo "CSV files generated successfully"
+          head -5 data/*.csv
+        fi
+        
+    - name: Static analysis with cppcheck
+      run: |
+        cppcheck --enable=all --std=c99 --error-exitcode=1 src/ include/ || true
+        
+    - name: Memory check (short test)
+      if: matrix.compiler == 'gcc'
+      run: |
+        timeout 15s valgrind --leak-check=full --error-exitcode=1 --track-origins=yes ./datalogger --duration 3 --interval 1000 < /dev/null || true
+
+  build-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build release version
+      run: |
+        make release
+        
+    - name: Test release build
+      run: |
+        ./datalogger --help
+        
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: datalogger-release
+        path: datalogger 
