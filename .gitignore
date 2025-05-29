@@ -1,0 +1,46 @@
+# Build artifacts
+obj/
+*.o
+*.a
+*.so
+datalogger
+*.exe
+
+# Data files (optional - you might want to include sample data)
+data/*.csv
+data/*.log
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+core
+vgcore.*
+
+# Valgrind output
+valgrind-out.txt
+
+# Compressed files
+*.tar.gz
+*.zip
+
+# System files
+Thumbs.db
+.directory
+
+# Keep data directory structure but ignore contents
+data/*
+!data/.gitkeep 
